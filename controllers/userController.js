@@ -1,18 +1,17 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Json } = require('sequelize/types/utils');
 const User = require('../models/userModel');
 
-const signUp = (req, res) => {
+const signUp = async (req, res) => {
   try {
     const { userName, email, password } = req.body;
     const data = {
       userName,
       email,
-      password: bcrypt.hash(password, 10),
+      password: await bcrypt.hash(password, 10),
     };
 
-    const user = User.create(data);
+    const user = await User.create(data);
 
     if (user) {
       const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, {
@@ -22,7 +21,7 @@ const signUp = (req, res) => {
       res.cookie('jwt', token, { maxAge: 1 * 24 * 60 * 60, httpOnly: true });
       console.log('user', JSON.stringify(user, null, 2));
       console.log(token);
-      return res.status(201).json(user);
+      return res.status(201).json({ user });
     } else {
       return res.status(409).json('Details are not correct');
     }
@@ -31,14 +30,14 @@ const signUp = (req, res) => {
   }
 };
 
-const login = (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = User.findOne({ where: { email: email } });
+    const user = await User.findOne({ where: { email: email } });
 
     if (user) {
-      const isSame = bcrypt.compare(password, user.password);
+      const isSame = await bcrypt.compare(password, user.password);
 
       if (isSame) {
         const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, {
